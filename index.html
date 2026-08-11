@@ -1,0 +1,1194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>London TfL Route Planner — V11</title>
+<style>
+:root{--bg:#f3f4f6;--card:#fff;--ink:#111827;--muted:#667085;--line:#d9dde5;--accent:#003688;--good:#087443;--red:#e2231a}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);font:15px system-ui,-apple-system,Segoe UI,Roboto,Arial;color:var(--ink)}
+.app{max-width:760px;margin:auto;padding:18px}
+header{padding:18px 4px 12px} h1{font-size:25px;margin:0 0 5px} header p{margin:0;color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:0 6px 25px #1720330b}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field label{display:block;font-weight:650;margin-bottom:6px}
+input,button,select{font:inherit} input{width:100%;padding:12px 13px;border:1px solid #cfd5df;border-radius:11px;outline:0;background:#fff}
+input:focus{border-color:var(--accent);box-shadow:0 0 0 3px #1434cb18}
+.actions{display:flex;gap:9px;margin-top:13px}.primary{flex:1;border:0;border-radius:11px;padding:12px;background:var(--accent);color:#fff;font-weight:750;cursor:pointer}
+.swap,.clear{border:1px solid var(--line);background:#fff;border-radius:11px;padding:0 15px;cursor:pointer}
+.results{margin-top:16px}.summary{display:flex;justify-content:space-between;gap:12px;align-items:center;margin:0 0 10px}.summary h2{font-size:18px;margin:0}.hint{font-size:12px;color:var(--muted)}
+.route{background:#fff;border:1px solid var(--line);border-radius:16px;padding:15px;margin:10px 0}
+.route.top{border-color:#b8c3ff;box-shadow:0 5px 18px #1434cb10}.routehead{display:flex;justify-content:space-between;gap:10px}.badge{font-size:11px;font-weight:800;letter-spacing:.03em;padding:5px 8px;border-radius:999px;background:#eef2ff;color:#2638a8}
+.metrics{display:flex;gap:15px;flex-wrap:wrap;color:var(--muted);font-size:13px;margin:7px 0 12px}
+.steps{display:flex;flex-wrap:wrap;align-items:center;gap:6px}.stop{padding:7px 9px;background:#f7f8fa;border-radius:9px;font-size:13px}.arrow{color:#98a2b3}
+.legs{display:grid;gap:6px;margin:8px 0 12px}.leg{display:flex;align-items:center;gap:9px;font-size:13px}.dot{width:10px;height:10px;border-radius:50%;flex:none}
+.note{font-size:12px;color:var(--muted);line-height:1.45;margin-top:14px}
+.error{padding:12px;border-radius:11px;background:#fff2f0;color:#a42618}.empty{padding:24px;text-align:center;color:var(--muted)}
+.datalist-note{font-size:11px;color:var(--muted);margin-top:5px}
+
+.closed-lines{margin-top:12px;border-top:1px solid var(--line);padding-top:12px}
+.closed-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
+.closed-title{font-weight:700;font-size:13px}
+.closed-clear{border:0;background:none;color:var(--accent);cursor:pointer;font-size:12px;padding:3px 0}
+.closed-options{display:flex;flex-wrap:wrap;gap:7px}
+.closed-option{display:inline-flex;align-items:center;gap:6px;padding:7px 9px;border:1px solid #d7dce5;border-radius:999px;background:#fff;cursor:pointer;font-size:12px;user-select:none}
+.closed-option input{width:auto;margin:0;accent-color:#a42618}
+.closed-option:has(input:checked){border-color:#e2a7a0;background:#fff4f2;color:#8f2318}
+.closed-summary{margin:10px 0 0;padding:8px 10px;border-radius:10px;background:#fff8e8;color:#795600;font-size:12px}
+
+
+.nearest-box{margin-top:12px;border-top:1px solid var(--line);padding-top:12px}
+.nearest-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
+.nearest-title{font-weight:700;font-size:13px}
+.nearest-btn{border:1px solid #cfd5df;background:#fff;border-radius:10px;padding:8px 10px;cursor:pointer;font-weight:650;font-size:12px}
+.nearest-btn:disabled{opacity:.6;cursor:wait}
+.nearest-status{font-size:12px;color:var(--muted);line-height:1.4;margin:6px 0}
+.nearest-list{display:grid;gap:7px;margin-top:8px}
+.nearest-station{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;border:1px solid var(--line);background:#fff;border-radius:11px;padding:9px 10px;cursor:pointer}
+.nearest-station:hover{border-color:#b8c3ff}
+.nearest-name{font-weight:650;font-size:13px}
+.nearest-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.nearest-distance{font-weight:750;font-size:12px;white-space:nowrap}
+.nearest-privacy{font-size:10px;color:var(--muted);line-height:1.35;margin-top:7px}
+
+@media(max-width:600px){
+  .app{padding:8px;max-width:100%}
+  header{padding:9px 3px 8px}
+  h1{font-size:20px;margin-bottom:3px}
+  header p{font-size:12px;line-height:1.35}
+  .card{padding:11px;border-radius:13px}
+  .grid{grid-template-columns:1fr;gap:8px}
+  .field label{font-size:13px;margin-bottom:4px}
+  input{font-size:16px;min-height:44px;padding:10px 11px}
+  .actions{position:sticky;bottom:5px;z-index:5;background:rgba(255,255,255,.96);backdrop-filter:blur(10px);padding-top:6px}
+  .primary,.swap,.clear{min-height:44px}
+  .primary{font-size:14px}
+  .swap,.clear{padding:0 10px}
+  .summary{align-items:flex-start;flex-direction:column;gap:2px;margin-bottom:7px}
+  .summary h2{font-size:16px}
+  .summary .hint{font-size:11px}
+  .route{padding:10px;border-radius:12px;margin:7px 0}
+  .routehead{align-items:center;gap:6px}
+  .routehead strong{font-size:13px}
+  .badge{font-size:9px;padding:4px 6px}
+  .metrics{gap:5px 9px;margin:5px 0 8px;font-size:11px}
+  .legs{gap:4px;margin:6px 0 8px}
+  .leg{align-items:center;line-height:1.2;font-size:11px;gap:6px}
+  .dot{width:8px;height:8px}
+  .steps{gap:3px;overflow-x:auto;flex-wrap:nowrap;padding-bottom:2px;-webkit-overflow-scrolling:touch}
+  .stop{white-space:nowrap;font-size:10px;padding:5px 6px}
+  .arrow{font-size:12px;flex:none}
+  .note{font-size:10px;line-height:1.3;margin-top:8px}
+}
+
+/* V8 — easier station search */
+.search-field{position:relative}
+.search-help{font-size:11px;color:var(--muted);margin-top:5px}
+.station-menu{
+  position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:30;
+  background:#fff;border:1px solid #cfd5df;border-radius:12px;
+  box-shadow:0 12px 30px #17203318;overflow:hidden;display:none;
+  max-height:300px;overflow-y:auto;
+}
+.station-menu.open{display:block}
+.station-option{
+  width:100%;display:flex;align-items:center;justify-content:space-between;
+  gap:10px;text-align:left;border:0;border-bottom:1px solid #f0f1f4;
+  background:#fff;padding:11px 12px;cursor:pointer;font-size:14px;
+}
+.station-option:last-child{border-bottom:0}
+.station-option:hover,.station-option.active{background:#f3f5ff}
+.station-option-name{font-weight:650}
+.station-option-lines{font-size:10px;color:var(--muted);margin-top:2px}
+.station-option-arrow{color:#98a2b3;font-size:12px}
+.search-status{
+  display:flex;align-items:center;gap:7px;margin-top:8px;
+  font-size:11px;color:var(--muted)
+}
+.search-status strong{color:var(--ink)}
+.quick-nearest{
+  display:flex;gap:7px;overflow-x:auto;padding:2px 0 3px;
+  -webkit-overflow-scrolling:touch;scrollbar-width:thin
+}
+.quick-nearest .nearest-station{
+  min-width:190px;flex:0 0 auto
+}
+.nearest-box{background:#fafbff}
+.nearest-head{align-items:center}
+.nearest-title{font-size:14px}
+.nearest-btn{background:#1434cb;color:#fff;border-color:#1434cb}
+.nearest-btn:hover{filter:brightness(.95)}
+.closed-lines{background:#fffdf9;border-radius:12px;padding:11px;margin-top:14px}
+.closed-options{max-height:112px;overflow-y:auto;padding:2px}
+.closed-option{background:#fff}
+.search-empty{padding:13px;color:var(--muted);font-size:12px;text-align:center}
+@media(max-width:600px){
+  .station-menu{max-height:245px}
+  .station-option{padding:12px 10px;font-size:14px}
+  .search-help{font-size:10px}
+  .search-status{font-size:10px}
+  .nearest-btn{min-height:40px;padding:0 11px}
+  .nearest-box{margin-left:-2px;margin-right:-2px}
+}
+
+
+.brandbar{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+.brandmark{display:inline-flex;align-items:center;justify-content:center;width:38px;height:25px;border-radius:3px;background:#e2231a;color:#fff;font-weight:900;font-size:14px}
+.brandtype{font-size:10px;font-weight:800;letter-spacing:.1em;color:#003688}
+.route{overflow:hidden}
+.route.top{border-left:4px solid #003688}
+.journey-guide{margin-top:11px;border-top:1px solid #edf0f4;padding-top:10px}
+.guide-title{font-size:12px;font-weight:800;color:#003688;margin-bottom:7px}
+.guide-item{display:grid;grid-template-columns:23px 1fr;gap:8px;align-items:start;padding:8px 9px;border-radius:10px;background:#f7f9fc;margin:5px 0}
+.guide-icon{width:22px;height:22px;border-radius:50%;background:#003688;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900}
+.guide-main{font-size:12px;line-height:1.35}
+.guide-sub{font-size:11px;color:#667085;margin-top:2px}
+.interchange{background:#fff8e8;border:1px solid #f0dfb2}
+.interchange .guide-icon{background:#9b6b00}
+.platform-note{margin-top:7px;padding:8px 9px;border-radius:9px;background:#fff1f0;color:#7d201a;font-size:10.5px;line-height:1.35}
+@media(max-width:600px){
+ .brandmark{width:34px;height:23px;font-size:12px}.brandtype{font-size:9px}
+ .journey-guide{margin-top:8px;padding-top:8px}.guide-title{font-size:11px}
+ .guide-item{grid-template-columns:21px 1fr;gap:7px;padding:7px 8px}
+ .guide-icon{width:20px;height:20px;font-size:10px}.guide-main{font-size:11px}.guide-sub{font-size:10px}
+ .platform-note{font-size:10px}
+}
+
+/* V11 — large low-opacity TfL watermark */
+body{position:relative;overflow-x:hidden}
+body::before{
+  content:"TfL";
+  position:fixed;
+  z-index:-1;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%) rotate(-12deg);
+  font-family:Arial,Helvetica,sans-serif;
+  font-size:min(42vw,520px);
+  line-height:1;
+  font-weight:950;
+  letter-spacing:-.09em;
+  color:#003688;
+  opacity:.035;
+  pointer-events:none;
+  user-select:none;
+  white-space:nowrap;
+}
+body::after{
+  content:"LONDON";
+  position:fixed;
+  z-index:-1;
+  left:50%;
+  top:58%;
+  transform:translate(-50%,-50%) rotate(-12deg);
+  font-family:Arial,Helvetica,sans-serif;
+  font-size:min(12vw,150px);
+  line-height:1;
+  font-weight:900;
+  letter-spacing:.16em;
+  color:#e2231a;
+  opacity:.018;
+  pointer-events:none;
+  user-select:none;
+  white-space:nowrap;
+}
+
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+<div class="brandbar"><span class="brandmark">TfL</span><span class="brandtype">LONDON JOURNEY PLANNER</span></div><h1>🚇 London Tube Router</h1>
+<p>Plan journeys across Tube, DLR, Elizabeth line and London Overground.</p>
+</header>
+
+<div class="card">
+<div class="grid">
+<div class="field search-field">
+<label for="from">📍 From station</label>
+<input id="from" placeholder="Search a station…" autocomplete="off" spellcheck="false">
+<div class="station-menu" id="fromMenu"></div>
+<div class="search-help">Start typing — choose a station from the list</div>
+</div>
+<div class="field search-field">
+<label for="to">🎯 To station</label>
+<input id="to" placeholder="Search a station…" autocomplete="off" spellcheck="false">
+<div class="station-menu" id="toMenu"></div>
+<div class="search-help">Start typing — choose a station from the list</div>
+</div>
+</div>
+<datalist id="stations"></datalist>
+<div class="search-status"><span>🔎</span><span id="searchStatus">Start typing to see matching stations</span></div>
+<div class="actions">
+<button class="swap" id="swap" title="Swap stations">⇄</button>
+<button class="primary" id="go">Find routes</button>
+<button class="clear" id="clear">Clear</button>
+</div>
+<div class="datalist-note">Tip: start typing a station name and choose the matching suggestion.</div>
+
+<div class="nearest-box">
+  <div class="nearest-head">
+    <span class="nearest-title">📍 Find a nearby station</span>
+    <button type="button" class="nearest-btn" id="nearestBtn">Use my location</button>
+  </div>
+  <div id="nearestStatus" class="nearest-status">
+    Use your location to quickly find the closest stations, then tap one to set it as your From station.
+  </div>
+  <div id="nearestList" class="nearest-list"></div>
+  <div class="nearest-privacy">
+    Nearby-station lookup is handled securely through this site's server. Your browser only sends your location to this site; TfL credentials stay on the VPS.
+  </div>
+</div>
+
+<div class="closed-lines">
+  <div class="closed-head">
+    <span class="closed-title">⚠️ Closed lines / disruptions</span>
+    <button type="button" class="closed-clear" id="clearClosed">Clear all</button>
+  </div>
+  <div class="closed-options" id="closedOptions"></div>
+  <div class="datalist-note">Select any line that is unavailable. Routes will avoid it completely.</div>
+  <div id="closedSummary" class="closed-summary" style="display:none"></div>
+</div>
+</div>
+
+<div class="card" style="margin-top:12px;padding:10px 13px">
+  <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:12px;color:#667085">
+    <span>⚡ Fastest</span><span>🚇 Direct = 0 changes</span><span>🔄 Alternatives</span>
+    <span>🚇 Tube</span><span>🔷 DLR</span><span>💜 Elizabeth</span><span>🚆 Overground</span>
+  </div>
+</div>
+<div id="results" class="results"></div>
+<div class="note">Static route estimates. Boarding directions are guidance only; always follow live station signs and departure boards for the actual platform. Nearby-station requests use the site's secure VPS proxy. Fare is only an estimate: TfL says fares vary by line, direction, time and day. For exact live fares/status, use TfL's current journey/fare services.</div>
+</div>
+
+<script>
+const LINES = {
+"Bakerloo": {color:"#b36305", time:2.2, segments:[
+["Elephant & Castle","Lambeth North","Waterloo","Embankment","Charing Cross","Piccadilly Circus","Oxford Circus","Regent's Park","Baker Street","Marylebone","Edgware Road","Warwick Avenue","Maida Vale","Kilburn Park","Queen's Park","Kensal Green","Willesden Junction","Harlesden","Stonebridge Park","Wembley Central","North Wembley","South Kenton","Kenton","Harrow & Wealdstone"]
+]},
+"Central": {color:"#e32017", time:2.0, segments:[
+["Ealing Broadway","West Acton","North Acton","East Acton","White City","Shepherd's Bush","Holland Park","Notting Hill Gate","Queensway","Lancaster Gate","Marble Arch","Bond Street","Oxford Circus","Tottenham Court Road","Holborn","Chancery Lane","St Paul's","Bank","Liverpool Street","Bethnal Green","Mile End","Stratford","Leyton","Leytonstone","Snaresbrook","South Woodford","Woodford","Buckhurst Hill","Loughton","Debden","Epping"],
+["Northolt","Greenford","Perivale","Hanger Lane","North Acton"]
+]},
+"Circle": {color:"#ffd300", time:2.0, segments:[
+["Hammersmith","Goldhawk Road","Shepherd's Bush Market","Wood Lane","Latimer Road","Ladbroke Grove","Westbourne Park","Royal Oak","Paddington","Edgware Road","Baker Street","Great Portland Street","Euston Square","King's Cross St Pancras","Farringdon","Barbican","Moorgate","Liverpool Street","Aldgate","Tower Hill","Monument","Cannon Street","Mansion House","Blackfriars","Temple","Embankment","Westminster","St James's Park","Victoria","Sloane Square","South Kensington","Gloucester Road","High Street Kensington","Notting Hill Gate","Bayswater","Paddington"]
+]},
+"Hammersmith & City": {color:"#f3a9bb", time:2.0, segments:[
+["Hammersmith","Goldhawk Road","Shepherd's Bush Market","Wood Lane","Latimer Road","Ladbroke Grove","Westbourne Park","Royal Oak","Paddington","Edgware Road","Baker Street","Great Portland Street","Euston Square","King's Cross St Pancras","Farringdon","Barbican","Moorgate","Liverpool Street","Aldgate East","Whitechapel","Stepney Green","Mile End","Bow Road","Bromley-by-Bow","West Ham","Plaistow","Upton Park","East Ham","Barking"]
+]},
+"Jubilee": {color:"#a0a5a9", time:2.1, segments:[
+["Stanmore","Canons Park","Queensbury","Kingsbury","Wembley Park","Neasden","Dollis Hill","Willesden Green","Kilburn","West Hampstead","Finchley Road","Swiss Cottage","St John's Wood","Baker Street","Bond Street","Green Park","Westminster","Waterloo","Southwark","London Bridge","Bermondsey","Canada Water","Canary Wharf","North Greenwich","Canning Town","West Ham","Stratford"]
+]},
+"Metropolitan": {color:"#9b0058", time:2.5, segments:[
+["Aldgate","Liverpool Street","Moorgate","Barbican","Farringdon","King's Cross St Pancras","Euston Square","Great Portland Street","Baker Street","Finchley Road","Wembley Park","Preston Road","Northwick Park","Harrow-on-the-Hill","North Harrow","Pinner","Northwood Hills","Northwood","Moor Park","Rickmansworth","Chorleywood","Chalfont & Latimer","Amersham"],
+["Moor Park","Croxley","Watford"]
+]},
+"Northern": {color:"#000000", time:2.3, segments:[
+["Edgware","Burnt Oak","Colindale","Hendon Central","Brent Cross","Golders Green","Hampstead","Belsize Park","Chalk Farm","Camden Town","Mornington Crescent","Euston","Warren Street","Goodge Street","Tottenham Court Road","Leicester Square","Charing Cross","Embankment","Waterloo","Kennington","Elephant & Castle","Borough","London Bridge"],
+["High Barnet","Totteridge & Whetstone","Woodside Park","West Finchley","Finchley Central","East Finchley","Highgate","Archway","Tufnell Park","Kentish Town","Camden Town"],
+["Mill Hill East","Finchley Central"],
+["Nine Elms","Battersea Power Station","Kennington"]
+]},
+"Piccadilly": {color:"#003688", time:2.3, segments:[
+["Cockfosters","Oakwood","Southgate","Arnos Grove","Bounds Green","Wood Green","Turnpike Lane","Manor House","Finsbury Park","Arsenal","Holloway Road","Caledonian Road","King's Cross St Pancras","Russell Square","Holborn","Covent Garden","Leicester Square","Piccadilly Circus","Green Park","Hyde Park Corner","Knightsbridge","South Kensington","Gloucester Road","Earl's Court","Barons Court","Hammersmith","Acton Town"],
+["Acton Town","South Ealing","Northfields","Boston Manor","Osterley","Hounslow East","Hounslow Central","Hounslow West","Hatton Cross","Heathrow Terminals 2 & 3","Heathrow Terminal 4"],
+["Acton Town","Ealing Common","North Ealing","Park Royal","Alperton","Sudbury Town","Sudbury Hill","South Harrow","Rayners Lane","Eastcote","Ruislip Manor","Ruislip","Ickenham","Hillingdon","Uxbridge"]
+]},
+"Victoria": {color:"#0098d4", time:2.0, segments:[
+["Walthamstow Central","Blackhorse Road","Tottenham Hale","Seven Sisters","Finsbury Park","Highbury & Islington","King's Cross St Pancras","Euston","Warren Street","Oxford Circus","Green Park","Victoria","Pimlico","Vauxhall","Stockwell","Brixton"]
+]},
+"Waterloo & City": {color:"#95cdb3", time:2.0, segments:[
+["Bank","Waterloo"]
+]},
+"District": {color:"#00782a", time:2.1, segments:[
+["Upminster","Upminster Bridge","Hornchurch","Elm Park","Dagenham East","Dagenham Heathway","Becontree","Upney","Barking","East Ham","Upton Park","Plaistow","West Ham","Bromley-by-Bow","Mile End","Stepney Green","Whitechapel","Aldgate East","Tower Hill","Monument","Embankment","Westminster","St James's Park","Victoria","Sloane Square","South Kensington","Gloucester Road","Earl's Court","West Brompton","Fulham Broadway","Parsons Green","Putney Bridge","East Putney","Southfields","Wimbledon Park","Wimbledon"],
+["Richmond","Kew Gardens","Gunnersbury","Turnham Green","Chiswick Park","Acton Town","Ealing Common","Ealing Broadway"],
+["Earl's Court","Barons Court","Hammersmith","Ravenscourt Park","Stamford Brook","Turnham Green"],
+["Earl's Court","Kensington (Olympia)"]
+]}
+};
+
+const ALIASES = {
+"king's cross":"King's Cross St Pancras","kings cross":"King's Cross St Pancras",
+"king's cross st pancras":"King's Cross St Pancras","kings cross st pancras":"King's Cross St Pancras",
+"st pancras":"King's Cross St Pancras","st pancras international":"King's Cross St Pancras",
+"heathrow t2 & t3":"Heathrow Terminals 2 & 3","heathrow terminals 2 and 3":"Heathrow Terminals 2 & 3",
+"heathrow t4":"Heathrow Terminal 4","heathrow t5":"Heathrow Terminal 5",
+"liverpool st":"Liverpool Street","bond st":"Bond Street","oxford circus station":"Oxford Circus",
+"green park station":"Green Park","waterloo station":"Waterloo","bank station":"Bank",
+"canary wharf station":"Canary Wharf","london bridge station":"London Bridge"
+};
+
+
+// V3: wider TfL network — DLR, Elizabeth line and all six London Overground lines.
+Object.assign(LINES, {
+  "DLR": {color:"#00a4a7", time:2.0, segments:[
+    ["Bank","Shadwell","Limehouse","Westferry","Poplar","Blackwall","East India","Canning Town","Royal Victoria","Custom House","Prince Regent","Royal Albert","Beckton Park","Cyprus","Gallions Reach","Beckton"],
+    ["Tower Gateway","Shadwell"],
+    ["Poplar","West India Quay","Heron Quays","Canary Wharf","South Quay","Crossharbour","Mudchute","Island Gardens","Cutty Sark","Greenwich","Deptford Bridge","Elverson Road","Lewisham"],
+    ["Stratford","Pudding Mill Lane","Bow Church","Devons Road","Langdon Park","All Saints","Poplar"],
+    ["Canning Town","West Silvertown","Pontoon Dock","London City Airport","King George V","Woolwich Arsenal"],
+    ["Stratford International","Stratford"]
+  ]},
+  "Elizabeth line": {color:"#6950a1", time:2.4, segments:[
+    ["Reading","Twyford","Maidenhead","Taplow","Burnham","Slough","Langley","Iver","West Drayton","Hayes & Harlington","Southall","Hanwell","West Ealing","Ealing Broadway","Acton Main Line","Paddington","Bond Street","Tottenham Court Road","Farringdon","Liverpool Street","Whitechapel","Canary Wharf","Custom House","Woolwich","Abbey Wood"],
+    ["Paddington","Acton Main Line","Ealing Broadway","West Ealing","Hanwell","Southall","Hayes & Harlington","West Drayton","Iver","Langley","Slough","Burnham","Taplow","Maidenhead","Twyford","Reading"],
+    ["Liverpool Street","Stratford","Maryland","Forest Gate","Manor Park","Ilford","Seven Kings","Goodmayes","Chadwell Heath","Romford","Gidea Park","Harold Wood","Brentwood","Shenfield"],
+    ["Liverpool Street","Whitechapel","Canary Wharf","Custom House","Woolwich","Abbey Wood"]
+  ]},
+  "Lioness": {color:"#e87524", time:2.3, segments:[
+    ["Euston","South Hampstead","Kilburn High Road","Queen's Park","Kensal Green","Willesden Junction","Harlesden","Stonebridge Park","Wembley Central","North Wembley","South Kenton","Harrow & Wealdstone","Headstone Lane","Hatch End","Carpenders Park","Bushey","Watford High Street","Watford Junction"]
+  ]},
+  "Mildmay": {color:"#005eb8", time:2.2, segments:[
+    ["Richmond","Kew Gardens","Gunnersbury","South Acton","Acton Central","Shepherd's Bush","Kensington (Olympia)","West Brompton","Imperial Wharf","Clapham Junction"],
+    ["Clapham Junction","Imperial Wharf","West Brompton","Kensington (Olympia)","Shepherd's Bush","Acton Central","South Acton","Gunnersbury","Kew Gardens","Richmond"],
+    ["Stratford","Hackney Wick","Homerton","Hackney Central","Dalston Kingsland","Canonbury","Highbury & Islington","Caledonian Road & Barnsbury","Camden Road","Kentish Town West","Gospel Oak","Hampstead Heath","Finchley Road & Frognal","West Hampstead","Brondesbury","Kensal Rise","Willesden Junction"]
+  ]},
+  "Suffragette": {color:"#3f6f8f", time:2.3, segments:[
+    ["Gospel Oak","Upper Holloway","Crouch Hill","Finsbury Park","Harringay Green Lanes","South Tottenham","Blackhorse Road","Walthamstow Queen's Road","Leyton Midland Road","Leytonstone High Road","Wanstead Park","Woodgrange Park","Barking"]
+  ]},
+  "Weaver": {color:"#7a4e9d", time:2.4, segments:[
+    ["Liverpool Street","Bethnal Green","Cambridge Heath","London Fields","Hackney Downs","Rectory Road","Stoke Newington","Clapton","Bruce Grove","White Hart Lane","Silver Street","Edmonton Green","Bush Hill Park","Enfield Town"],
+    ["Hackney Downs","Clapton","Stamford Hill","Seven Sisters","Bruce Grove","White Hart Lane","Silver Street","Edmonton Green","Southbury","Turkey Street","Theobalds Grove","Cheshunt"],
+    ["Liverpool Street","Bethnal Green","Cambridge Heath","London Fields","Hackney Downs","Clapton","St James Street","Walthamstow Central","Wood Street","Highams Park","Chingford"]
+  ]},
+  "Windrush": {color:"#d05b78", time:2.3, segments:[
+    ["Highbury & Islington","Canonbury","Dalston Junction","Haggerston","Hoxton","Shoreditch High Street","Whitechapel","Shadwell","Wapping","Rotherhithe","Canada Water","Surrey Quays","Queens Road Peckham","Peckham Rye","Denmark Hill","Clapham High Street","Wandsworth Road","Clapham Junction"],
+    ["Surrey Quays","New Cross","New Cross Gate","Brockley","Honor Oak Park","Forest Hill","Sydenham","Penge West","Anerley","Norwood Junction","West Croydon"],
+    ["New Cross Gate","New Cross","Surrey Quays","Canada Water","Rotherhithe","Wapping","Shadwell","Whitechapel","Shoreditch High Street","Hoxton","Haggerston","Dalston Junction","Canonbury","Highbury & Islington"],
+    ["Norwood Junction","Crystal Palace"]
+  ]},
+  "Liberty": {color:"#6b7b35", time:2.5, segments:[
+    ["Romford","Emerson Park","Upminster"]
+  ]}
+});
+
+
+
+Object.assign(ALIASES, {
+  "custom house":"Custom House","custom house dlr":"Custom House","custom house for excel":"Custom House",
+  "woolwich arsenal":"Woolwich Arsenal","woolwich":"Woolwich",
+  "london city airport":"London City Airport","kings george v":"King George V",
+  "elizabeth line":"Elizabeth line","paddington elizabeth line":"Paddington",
+  "romford":"Romford","upminster":"Upminster","watford junction":"Watford Junction",
+  "clapham junction":"Clapham Junction","walthamstow central":"Walthamstow Central",
+  "enfield town":"Enfield Town","cheshunt":"Cheshunt","chigford":"Chingford",
+  "west croydon":"West Croydon","crystal palace":"Crystal Palace",
+  "highbury islington":"Highbury & Islington","highbury & islington":"Highbury & Islington"
+});
+
+const graph = new Map();
+const stationLines = new Map();
+
+function addNode(s){ if(!graph.has(s)) graph.set(s,[]); }
+
+function addEdge(a,b,line,minutes){
+  addNode(a); addNode(b);
+  const e1={to:b,line,minutes}, e2={to:a,line,minutes};
+  graph.get(a).push(e1); graph.get(b).push(e2);
+  if(!stationLines.has(a)) stationLines.set(a,new Set());
+  if(!stationLines.has(b)) stationLines.set(b,new Set());
+  stationLines.get(a).add(line); stationLines.get(b).add(line);
+}
+
+for(const [line,data] of Object.entries(LINES)){
+  for(const segment of data.segments){
+    segment.forEach(addNode);
+    for(let i=0;i<segment.length-1;i++) addEdge(segment[i],segment[i+1],line,data.time);
+  }
+  // Circle is a closed loop.
+  if(line==="Circle"){
+    const s=data.segments[0];
+    addEdge(s[s.length-1],s[0],line,data.time);
+  }
+}
+
+const names=[...graph.keys()].sort((a,b)=>a.localeCompare(b));
+const dl=document.getElementById("stations"); names.forEach(n=>{const o=document.createElement("option");o.value=n;dl.appendChild(o)});
+
+function norm(s){return (s||"").trim().toLowerCase().replace(/\s+/g," ")}
+function resolve(s){
+  const n=norm(s);
+  if(graph.has(s)) return s;
+  if(ALIASES[n]) return ALIASES[n];
+  const exact=names.find(x=>norm(x)===n); if(exact) return exact;
+  const starts=names.filter(x=>norm(x).startsWith(n)); if(starts.length===1) return starts[0];
+  const contains=names.filter(x=>norm(x).includes(n)); if(contains.length===1) return contains[0];
+  return null;
+}
+
+
+/* V8 — custom station search menu for clearer, mobile-friendly suggestions */
+const fromInput=document.getElementById("from");
+const toInput=document.getElementById("to");
+const fromMenu=document.getElementById("fromMenu");
+const toMenu=document.getElementById("toMenu");
+const searchStatus=document.getElementById("searchStatus");
+
+function stationLineText(name){
+  const lines=[...(stationLines.get(name)||[])];
+  return lines.slice(0,4).join(" • ") || "TfL station";
+}
+
+function showStationMenu(input,menu){
+  const query=norm(input.value);
+  let matches;
+
+  if(!query){
+    matches=names.slice(0,12);
+  }else{
+    const starts=names.filter(n=>norm(n).startsWith(query));
+    const contains=names.filter(n=>!norm(n).startsWith(query) && norm(n).includes(query));
+    matches=starts.concat(contains).slice(0,12);
+  }
+
+  menu.innerHTML=matches.length
+    ? matches.map((name,i)=>`
+      <button type="button" class="station-option" data-name="${esc(name)}">
+        <span>
+          <span class="station-option-name">${esc(name)}</span>
+          <span class="station-option-lines">${esc(stationLineText(name))}</span>
+        </span>
+        <span class="station-option-arrow">›</span>
+      </button>`).join("")
+    : `<div class="search-empty">No matching station found</div>`;
+
+  menu.classList.add("open");
+
+  menu.querySelectorAll(".station-option").forEach(btn=>{
+    btn.addEventListener("mousedown",e=>e.preventDefault());
+    btn.addEventListener("click",()=>{
+      input.value=btn.dataset.name;
+      menu.classList.remove("open");
+      updateSearchStatus();
+      if(input===fromInput) toInput.focus();
+    });
+  });
+}
+
+function closeStationMenus(){
+  fromMenu.classList.remove("open");
+  toMenu.classList.remove("open");
+}
+
+function updateSearchStatus(){
+  const from=resolve(fromInput.value);
+  const to=resolve(toInput.value);
+
+  if(from && to){
+    searchStatus.innerHTML="<strong>✓ Both stations selected</strong> — press Find routes";
+  }else if(from){
+    searchStatus.innerHTML="<strong>✓ From:</strong> "+esc(from)+" — now choose your destination";
+  }else if(to){
+    searchStatus.innerHTML="<strong>✓ To:</strong> "+esc(to)+" — now choose your starting station";
+  }else{
+    searchStatus.textContent="Start typing to see matching stations";
+  }
+}
+
+function wireStationSearch(input,menu){
+  input.addEventListener("focus",()=>showStationMenu(input,menu));
+
+  input.addEventListener("input",()=>{
+    showStationMenu(input,menu);
+    updateSearchStatus();
+  });
+
+  input.addEventListener("keydown",e=>{
+    const options=[...menu.querySelectorAll(".station-option")];
+    if(!menu.classList.contains("open") || !options.length) return;
+
+    let active=options.findIndex(o=>o.classList.contains("active"));
+
+    if(e.key==="ArrowDown"){
+      e.preventDefault();
+      active=(active+1)%options.length;
+    }else if(e.key==="ArrowUp"){
+      e.preventDefault();
+      active=(active-1+options.length)%options.length;
+    }else if(e.key==="Enter" && active>=0){
+      e.preventDefault();
+      options[active].click();
+      return;
+    }else if(e.key==="Escape"){
+      closeStationMenus();
+      return;
+    }else{
+      return;
+    }
+
+    options.forEach(o=>o.classList.remove("active"));
+    options[active].classList.add("active");
+    options[active].scrollIntoView({block:"nearest"});
+  });
+}
+
+wireStationSearch(fromInput,fromMenu);
+wireStationSearch(toInput,toMenu);
+
+document.addEventListener("click",e=>{
+  if(!e.target.closest(".search-field")) closeStationMenus();
+});
+
+
+function edgeKey(a,b,line){return `${a}→${b}::${line}`}
+
+const TRANSFER_MINUTES = 5.5;
+const START_BUFFER_MINUTES = 1.0;
+
+function reconstruct(prev, target){
+  const p=[]; let cur=target;
+  while(cur){p.push(cur.node); cur=prev.get(cur)}
+  return p.reverse();
+}
+
+/*
+  Weighted Dijkstra. State includes the current line so that a line change
+  has a real interchange penalty. This prevents a "change" from looking
+  artificially faster merely because it has fewer station nodes.
+*/
+function shortest(start,target,mode="time",bannedEdges=new Set(),bannedStates=new Set(),bannedLines=new Set()){
+  const startState=`${start}||`;
+  const dist=new Map([[startState,START_BUFFER_MINUTES]]);
+  const prev=new Map();
+  const used=new Set();
+
+  while(true){
+    let state=null,best=Infinity;
+    for(const [s,d] of dist){
+      if(!used.has(s)&&d<best){state=s;best=d;}
+    }
+    if(state===null) return null;
+
+    const [u, currentLine] = state.split("||");
+    if(u===target){
+      const nodes=[], edges=[];
+      let cur=state;
+      while(cur){
+        const item=prev.get(cur);
+        const [node,line]=cur.split("||");
+        nodes.push(node);
+        if(item) edges.push(item.edge);
+        cur=item ? item.prev : null;
+      }
+      nodes.reverse(); edges.reverse();
+      const route={nodes,edges,cost:best};
+      return route;
+    }
+
+    used.add(state);
+
+    for(const e of graph.get(u)||[]){
+      const nextState=`${e.to}||${e.line}`;
+      const edgeId=edgeKey(u,e.to,e.line);
+      if(bannedLines.has(e.line) || bannedEdges.has(edgeId) || bannedStates.has(nextState)) continue;
+
+      const change = currentLine && currentLine!==e.line;
+      const transferPenalty = change ? TRANSFER_MINUTES : 0;
+      let weight=e.minutes + transferPenalty;
+
+      // "fewest" is a ranking mode, not the displayed journey time.
+      if(mode==="changes") weight += change ? 25 : 0;
+      if(mode==="direct") weight += change ? 100 : 0;
+
+      const nd=best+weight;
+      if(nd < (dist.get(nextState) ?? Infinity)){
+        dist.set(nextState,nd);
+        prev.set(nextState,{prev:state,edge:{from:u,to:e.to,line:e.line,minutes:e.minutes}});
+      }
+    }
+  }
+}
+
+function routeStats(route){
+  let changes=0,prevLine=null,travel=0;
+  const legs=[];
+  for(const e of route.edges){
+    travel+=e.minutes;
+    if(prevLine!==null && prevLine!==e.line) changes++;
+    if(!legs.length || legs.at(-1).line!==e.line){
+      legs.push({line:e.line,from:e.from,to:e.to});
+    }else{
+      legs.at(-1).to=e.to;
+    }
+    prevLine=e.line;
+  }
+  return {
+    changes,
+    stops:route.edges.length,
+    minutes:Math.round(travel + changes*TRANSFER_MINUTES + START_BUFFER_MINUTES),
+    legs,
+    direct:changes===0
+  };
+}
+
+
+/* V10: static boarding guidance. Platform numbers are intentionally not invented. */
+const LINE_TERMINI={
+"Bakerloo":["Elephant & Castle","Harrow & Wealdstone"],
+"Central":["Ealing Broadway","Epping"],
+"Circle":["Hammersmith","Hammersmith"],
+"Hammersmith & City":["Hammersmith","Barking"],
+"Jubilee":["Stanmore","Stratford"],
+"Metropolitan":["Aldgate","Amersham"],
+"Northern":["Edgware","Morden"],
+"Piccadilly":["Cockfosters","Heathrow Terminal 4"],
+"Victoria":["Walthamstow Central","Brixton"],
+"Waterloo & City":["Bank","Waterloo"],
+"District":["Upminster","Ealing Broadway"],
+"DLR":["Bank","Beckton"],
+"Elizabeth line":["Reading","Shenfield"],
+"Lioness":["Euston","Watford Junction"],
+"Mildmay":["Richmond","Willesden Junction"],
+"Suffragette":["Gospel Oak","Barking"],
+"Weaver":["Liverpool Street","Enfield Town"],
+"Windrush":["Highbury & Islington","West Croydon"],
+"Liberty":["Romford","Upminster"]
+};
+
+function directionForLeg(line,from,to){
+  const data=LINES[line];
+  if(!data) return LINE_TERMINI[line]?.[1]||"";
+  const seg=data.segments.find(s=>s.includes(from)&&s.includes(to));
+  if(!seg) return LINE_TERMINI[line]?.[1]||"";
+  const a=seg.indexOf(from), b=seg.indexOf(to);
+  return b>a ? seg[seg.length-1] : seg[0];
+}
+
+function guideHTML(route){
+  const st=routeStats(route);
+  const rows=[];
+  st.legs.forEach((leg,i)=>{
+    const dir=directionForLeg(leg.line,leg.from,leg.to);
+    if(i===0){
+      rows.push(`<div class="guide-item"><span class="guide-icon">1</span><div class="guide-main">
+      Take <b>${esc(leg.line)}</b>${dir?` towards <b>${esc(dir)}</b>`:""}.
+      <div class="guide-sub">Board at <b>${esc(leg.from)}</b> and stay on this service until <b>${esc(leg.to)}</b>.</div>
+      </div></div>`);
+    }
+    if(i<st.legs.length-1){
+      const next=st.legs[i+1];
+      const nextDir=directionForLeg(next.line,next.from,next.to);
+      rows.push(`<div class="guide-item interchange"><span class="guide-icon">↔</span><div class="guide-main">
+      Change at <b>${esc(leg.to)}</b>.
+      <div class="guide-sub">Follow signs for <b>${esc(next.line)}</b>${nextDir?` towards <b>${esc(nextDir)}</b>`:""}.</div>
+      </div></div>`);
+    }
+  });
+  const last=st.legs.at(-1);
+  if(last){
+    const dir=directionForLeg(last.line,last.from,last.to);
+    rows.push(`<div class="guide-item"><span class="guide-icon">✓</span><div class="guide-main">
+      Stay on <b>${esc(last.line)}</b> to <b>${esc(last.to)}</b>.
+      <div class="guide-sub">${dir?`Service direction: <b>${esc(dir)}</b>.`:""}</div>
+    </div></div>`);
+  }
+  return `<div class="journey-guide"><div class="guide-title">HOW TO TRAVEL</div>${rows.join("")}
+  <div class="platform-note">ℹ️ <b>Platform:</b> follow the station signs and departure screens for the stated line and direction. This static app does not invent a platform number because platforms can change.</div></div>`;
+}
+
+function samePrefix(a,b,n){
+  return a.nodes.slice(0,n+1).join("|")===b.nodes.slice(0,n+1).join("|");
+}
+
+/*
+  Yen-style alternatives. We keep the true weighted journey time and then
+  explicitly add a direct route when one exists.
+*/
+function kRoutes(start,target,k=8,bannedLines=new Set()){
+  const first=shortest(start,target,"time",new Set(),new Set(),bannedLines);
+  if(!first) return [];
+
+  const A=[first], seen=new Set([keyPath(first)]), pool=[];
+
+  for(let r=1;r<k;r++){
+    const prevRoute=A[r-1];
+    for(let i=0;i<prevRoute.nodes.length-1;i++){
+      const rootNodes=prevRoute.nodes.slice(0,i+1);
+      const rootEdges=prevRoute.edges.slice(0,i);
+      const bannedEdges=new Set();
+
+      for(const p of A){
+        if(p.nodes.length>i && samePrefix(p,prevRoute,i)){
+          const e=p.edges[i];
+          if(e) bannedEdges.add(edgeKey(e.from,e.to,e.line));
+        }
+      }
+
+      const bannedStates=new Set();
+      rootNodes.slice(0,-1).forEach(n=>{
+        for(const line of (stationLines.get(n)||[])) bannedStates.add(`${n}||${line}`);
+      });
+
+      const spur=shortest(rootNodes.at(-1),target,"time",bannedEdges,bannedStates,bannedLines);
+      if(!spur) continue;
+
+      const nodes=rootNodes.slice(0,-1).concat(spur.nodes);
+      const edges=rootEdges.concat(spur.edges);
+      const cand={nodes,edges,cost:0};
+      cand.cost=routeStats(cand).minutes;
+
+      const key=keyPath(cand);
+      if(!seen.has(key)){seen.add(key);pool.push(cand);}
+    }
+
+    if(!pool.length) break;
+    pool.sort((a,b)=>routeStats(a).minutes-routeStats(b).minutes);
+    A.push(pool.shift());
+  }
+
+  // Guarantee the direct same-line option is represented when available.
+  const direct=shortest(start,target,"direct",new Set(),new Set(),bannedLines);
+  if(direct && routeStats(direct).direct && !seen.has(keyPath(direct))){
+    A.push(direct);
+    seen.add(keyPath(direct));
+  }
+
+  // De-duplicate by station path and sort by actual estimated minutes.
+  const unique=[...new Map(A.map(r=>[keyPath(r),r])).values()];
+  unique.sort((a,b)=>{
+    const sa=routeStats(a), sb=routeStats(b);
+    return sa.minutes-sb.minutes || sa.changes-sb.changes || sa.stops-sb.stops;
+  });
+  return unique.slice(0,k);
+}
+
+function keyPath(p){return p.nodes.join("|")}
+
+const ZONES = {
+"Ealing Broadway":3,"West Acton":3,"North Acton":3,"East Acton":2,"White City":2,
+"Shepherd's Bush":2,"Shepherd's Bush Market":2,"Oxford Circus":1,"Bond Street":1,
+"Liverpool Street":1,"Bank":1,"Canary Wharf":2,"London Bridge":1,"Waterloo":1,
+"Victoria":1,"King's Cross St Pancras":1,"Paddington":1,"Baker Street":1,
+"Stratford":2,"Green Park":1,"Heathrow Terminals 2 & 3":6,
+"Heathrow Terminal 4":6,"Heathrow Terminal 5":6,"Wimbledon":3,"Morden":4,
+"Upminster":6,"Epping":6,"Amersham":9,"Watford":7,"Uxbridge":6,
+"Ruislip":6,"Ruislip Manor":6,"Ickenham":6,"Hillingdon":6,
+"Northolt":5,"Greenford":4,"Ealing Common":3,"Acton Town":3,
+"Hammersmith":2,"Richmond":4,"Walthamstow Central":3,"Brixton":2
+};
+
+
+Object.assign(ZONES, {
+  "Custom House":3,"Prince Regent":3,"Royal Victoria":3,"Woolwich":4,"Abbey Wood":4,
+  "Canary Wharf":2,"West India Quay":2,"Poplar":2,"Greenwich":2,"Lewisham":2,
+  "Stratford":2,"Stratford International":2,"Canning Town":3,"Beckton":3,
+  "Woolwich Arsenal":4,"London City Airport":3,"King George V":3,
+  "Reading":9,"Twyford":9,"Maidenhead":9,"Taplow":6,"Burnham":6,"Slough":6,
+  "Langley":6,"Iver":6,"West Drayton":6,"Hayes & Harlington":5,"Southall":4,
+  "Hanwell":4,"West Ealing":3,"Acton Main Line":3,"Whitechapel":2,
+  "Shenfield":9,"Brentwood":9,"Harold Wood":6,"Gidea Park":6,"Romford":6,
+  "Chadwell Heath":5,"Goodmayes":4,"Seven Kings":4,"Ilford":4,"Forest Gate":3,
+  "Manor Park":3,"Maryland":3,"Watford Junction":7,"Watford High Street":7,
+  "Bushey":7,"Carpenders Park":7,"Harrow & Wealdstone":5,
+  "Clapham Junction":2,"Richmond":4,"Enfield Town":5,"Cheshunt":8,"Chingford":5,
+  "Walthamstow Central":3,"Crystal Palace":3,"West Croydon":5,"Barking":4,
+  "Barking Riverside":4,"Upminster":6,"Emerson Park":6,"Romford":6,
+  "Lewisham":2,"Greenwich":2,"Deptford Bridge":2,"Cutty Sark":2
+});
+
+function fareEstimate(route){
+  // Static estimate only. Exact fares depend on TfL fare rules, time/day and route.
+  const zones = route.nodes.map(s=>ZONES[s]).filter(Boolean);
+  if(!zones.length) return "—";
+  const max=Math.max(...zones), min=Math.min(...zones);
+  const span=max-min;
+  let base=3.0 + Math.min(span,3)*0.7;
+  if(max>=6) base+=1.0;
+  return base.toFixed(2);
+}
+
+function esc(s){return s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
+
+function renderRoute(r,index){
+  const st=routeStats(r);
+  let badge = index===0 ? "FASTEST" : (st.direct ? "DIRECT • 0 CHANGES" : `${index+1}${index===1?"ND":"TH"} FASTEST`);
+  if(index===1 && st.direct) badge="DIRECT • 0 CHANGES";
+  const title = index===0 ? "Fastest route" : (st.direct ? "Direct route" : "Alternative route");
+
+  const legsHTML=st.legs.map(l=>{
+    const color=LINES[l.line].color;
+    return `<div class="leg"><span class="dot" style="background:${color}"></span><b>${esc(l.line)}</b><span>${esc(l.from)} → ${esc(l.to)}</span></div>`;
+  }).join("");
+
+  const steps=r.nodes.map((n,i)=>
+    `<span class="stop">${esc(n)}</span>${i<r.nodes.length-1?'<span class="arrow">›</span>':''}`
+  ).join("");
+
+  return `<div class="route ${index===0?'top':''}">
+    <div class="routehead">
+      <strong>${title}</strong>
+      <span class="badge">${badge}</span>
+    </div>
+    <div class="metrics">
+      <span>⏱ ~${st.minutes} min</span>
+      <span>🔄 ${st.changes} change${st.changes===1?'':'s'}</span>
+      <span>🚉 ${st.stops} stops</span>
+      <span>💷 est. £${fareEstimate(r)}</span>
+    </div>
+    <div class="legs">${legsHTML}</div>
+    <div class="steps">${steps}</div>
+    ${guideHTML(r)}
+  </div>`;
+}
+
+
+
+
+/*
+ * TfL Unified API
+ *
+ * The browser must send the subscription key as app_key.
+ * This is a client-side static application, so the key is necessarily
+ * visible to users in source/network requests. For a production/public
+ * application, a small server-side proxy is safer.
+ */
+const nearestBtn = document.getElementById("nearestBtn");
+const nearestStatus = document.getElementById("nearestStatus");
+const nearestList = document.getElementById("nearestList");
+
+function haversineKm(lat1, lon1, lat2, lon2){
+  const R=6371;
+  const dLat=(lat2-lat1)*Math.PI/180;
+  const dLon=(lon2-lon1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2 +
+    Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function formatDistance(km){
+  if(km < 1) return `${Math.round(km*1000)} m`;
+  return `${km.toFixed(1)} km`;
+}
+
+function stationLinesFromTfl(stop){
+  const names=[];
+  (stop.lines || []).forEach(line=>{
+    const name=line.name || line.id;
+    if(name && !names.includes(name)) names.push(name);
+  });
+  return names;
+}
+
+function normalizeTflStationName(name){
+  let n=(name||"").trim();
+
+  // TfL commonName often contains the transport-mode suffix.
+  n=n.replace(/\s+(Underground|DLR|Rail|Overground)\s+Station$/i,"");
+  n=n.replace(/\s+Station$/i,"");
+
+  // TfL interchange naming variants used by StopPoint.
+  n=n.replace(/\s*\(for\s+ExCel\)\s*$/i,"");
+  n=n.replace(/\s*\(for\s+Excel\)\s*$/i,"");
+  n=n.replace(/\s*\(Elizabeth line\)\s*$/i,"");
+
+  const aliases={
+    "King's Cross St Pancras":"King's Cross St Pancras",
+    "Kings Cross St Pancras":"King's Cross St Pancras",
+    "Heathrow Terminals 2 & 3":"Heathrow Terminals 2 & 3",
+    "Heathrow Terminal 2 & 3":"Heathrow Terminals 2 & 3",
+    "Custom House":"Custom House",
+    "Custom House for ExCel":"Custom House",
+    "Custom House for Excel":"Custom House",
+    "Woolwich":"Woolwich",
+    "Woolwich Arsenal":"Woolwich Arsenal",
+    "London City Airport":"London City Airport",
+    "King George V":"King George V",
+    "West Ham":"West Ham",
+    "Canning Town":"Canning Town",
+    "Canary Wharf":"Canary Wharf"
+  };
+
+  return aliases[n] || n;
+}
+
+function getTfLLineNames(stop){
+  const names=[];
+  (stop.lines || []).forEach(line=>{
+    const name=line.name || line.id;
+    if(name && !names.includes(name)) names.push(name);
+  });
+
+  // StopPoint mode data can be incomplete depending on the endpoint response.
+  if(stop.modes && Array.isArray(stop.modes)){
+    stop.modes.forEach(mode=>{
+      const pretty={
+        "tube":"Tube",
+        "dlr":"DLR",
+        "overground":"London Overground",
+        "elizabeth-line":"Elizabeth line"
+      }[mode];
+      if(pretty && !names.includes(pretty)) names.push(pretty);
+    });
+  }
+
+  return names;
+}
+
+async function findNearestStations(){
+  nearestList.style.display="grid";
+  if(!navigator.geolocation){
+    nearestStatus.textContent="Geolocation is not supported by this browser.";
+    return;
+  }
+
+  nearestBtn.disabled=true;
+  nearestBtn.textContent="Finding…";
+  nearestStatus.textContent="Requesting your location…";
+  nearestList.innerHTML="";
+
+  navigator.geolocation.getCurrentPosition(async position=>{
+    const {latitude,longitude}=position.coords;
+
+    try{
+      const params=new URLSearchParams({
+        lat:String(latitude),
+        lon:String(longitude)
+      });
+
+      // Same-origin VPS proxy. The TfL credentials never reach the browser.
+      const url=`api/nearest-stations.php?${params.toString()}`;
+      const response=await fetch(url,{headers:{"Accept":"application/json"}});
+
+      if(!response.ok){
+        const body=await response.text().catch(()=> "");
+        console.error("[TfL] HTTP error:",response.status,body);
+
+        if(response.status===401 || response.status===403){
+          throw new Error("TfL API authentication failed. Check the subscription key.");
+        }
+
+        throw new Error(`TfL returned HTTP ${response.status}.`);
+      }
+
+      const data=await response.json();
+      const stops=Array.isArray(data.stopPoints) ? data.stopPoints : [];
+
+      console.log("[TfL] StopPoints returned:",stops.length);
+
+      if(!stops.length){
+        nearestStatus.textContent="TfL returned no nearby stations within 3 km.";
+        return;
+      }
+
+      const unique=new Map();
+
+      for(const stop of stops){
+        const rawName=stop.commonName || stop.name;
+        const resolvedName=normalizeTflStationName(rawName);
+
+        const lat=Number(stop.lat);
+        const lon=Number(stop.lon);
+
+        if(!resolvedName || !Number.isFinite(lat) || !Number.isFinite(lon)){
+          continue;
+        }
+
+        // Only show stations that exist in this application's routing graph.
+        const resolved=resolve(resolvedName);
+
+        if(!resolved || !graph.has(resolved)){
+          console.debug("[TfL] Station not represented in static graph:",rawName,"→",resolvedName);
+          continue;
+        }
+
+        const distance=haversineKm(latitude,longitude,lat,lon);
+        const lines=getTfLLineNames(stop);
+
+        if(!unique.has(resolved)){
+          unique.set(resolved,{
+            name:resolved,
+            distance,
+            lines:[...lines]
+          });
+        }else{
+          const existing=unique.get(resolved);
+
+          // Keep the closest StopPoint for the interchange.
+          if(distance < existing.distance){
+            existing.distance=distance;
+          }
+
+          // Merge transport-line information from duplicate StopPoints.
+          lines.forEach(line=>{
+            if(!existing.lines.includes(line)) existing.lines.push(line);
+          });
+        }
+      }
+
+      const nearest=[...unique.values()]
+        .sort((a,b)=>a.distance-b.distance)
+        .slice(0,6);
+
+      if(!nearest.length){
+        nearestStatus.textContent=
+          "TfL returned nearby stations, but none matched the stations in this route planner. Check the browser console for details.";
+        console.warn("[TfL] Returned stations did not match the static routing graph.");
+        return;
+      }
+
+      nearestStatus.textContent=
+        `Found ${nearest.length} nearby station${nearest.length===1?"":"s"}. Tap one to use it as your From station.`;
+
+      nearestList.innerHTML=nearest.map(st=>{
+        const lineText=st.lines.length
+          ? st.lines.slice(0,5).join(" • ")
+          : [...(stationLines.get(st.name)||[])].slice(0,5).join(" • ") || "TfL station";
+
+        return `<button type="button" class="nearest-station" data-station="${esc(st.name)}">
+          <span>
+            <span class="nearest-name">${esc(st.name)}</span>
+            <span class="nearest-meta">${esc(lineText)}</span>
+          </span>
+          <span class="nearest-distance">${formatDistance(st.distance)}</span>
+        </button>`;
+      }).join("");
+
+      nearestList.querySelectorAll(".nearest-station").forEach(button=>{
+        button.addEventListener("click",()=>{
+          const station=button.dataset.station;
+
+          document.getElementById("from").value=station;
+
+          // Hide the nearby-station results after selection so the
+          // main journey search/results remain easy to see.
+          nearestList.innerHTML="";
+          nearestList.style.display="none";
+          nearestStatus.textContent=`From station set to ${station}.`;
+          nearestStatus.style.display="block";
+
+          document.getElementById("from").focus();
+          updateSearchStatus();
+        });
+      });
+
+    }catch(error){
+      console.error("[TfL] Nearest station lookup failed:",error);
+
+      nearestStatus.textContent=
+        error.message ||
+        "Unable to retrieve nearby stations right now. Check the browser console for details.";
+    }finally{
+      nearestBtn.disabled=false;
+      nearestBtn.textContent="Use my location";
+    }
+
+  },error=>{
+    const messages={
+      1:"Location permission was denied. Please allow location access in your browser to use this feature.",
+      2:"Your location could not be determined. Please try again.",
+      3:"Location request timed out. Please try again."
+    };
+
+    nearestStatus.textContent=
+      messages[error.code] || "Unable to determine your location.";
+
+    nearestBtn.disabled=false;
+    nearestBtn.textContent="Use my location";
+  },{
+    enableHighAccuracy:true,
+    timeout:10000,
+    maximumAge:30000
+  });
+}
+
+nearestBtn.addEventListener("click",findNearestStations);
+
+
+const CLOSED_LINE_NAMES = Object.keys(LINES);
+const closedOptions = document.getElementById("closedOptions");
+const closedSummary = document.getElementById("closedSummary");
+
+CLOSED_LINE_NAMES.forEach(line=>{
+  const label=document.createElement("label");
+  label.className="closed-option";
+  label.innerHTML=`<input type="checkbox" value="${esc(line)}"> <span>${esc(line)}</span>`;
+  closedOptions.appendChild(label);
+});
+
+function getClosedLines(){
+  return new Set([...closedOptions.querySelectorAll('input[type="checkbox"]:checked')].map(i=>i.value));
+}
+
+function updateClosedSummary(){
+  const closed=[...getClosedLines()];
+  closedSummary.style.display=closed.length ? "block" : "none";
+  closedSummary.innerHTML=closed.length
+    ? `⚠️ Excluding <b>${closed.map(esc).join(", ")}</b> from route calculations.`
+    : "";
+}
+
+closedOptions.addEventListener("change",()=>{
+  updateClosedSummary();
+  if(resolve(document.getElementById("from").value) && resolve(document.getElementById("to").value)) findRoutes();
+});
+
+document.getElementById("clearClosed").onclick=()=>{
+  closedOptions.querySelectorAll('input[type="checkbox"]').forEach(i=>i.checked=false);
+  updateClosedSummary();
+  if(resolve(document.getElementById("from").value) && resolve(document.getElementById("to").value)) findRoutes();
+};
+
+function findRoutes(){
+  const from=resolve(document.getElementById("from").value);
+  const to=resolve(document.getElementById("to").value);
+  const box=document.getElementById("results");
+
+  if(!from||!to){
+    box.innerHTML=`<div class="error">Please choose two valid stations from the suggestions.</div>`;
+    return;
+  }
+  if(from===to){
+    box.innerHTML=`<div class="empty">You are already at <b>${esc(from)}</b>.</div>`;
+    return;
+  }
+
+  const closedLines=getClosedLines();
+  const routes=kRoutes(from,to,8,closedLines);
+  if(!routes.length){
+    const excluded=closedLines.size ? ` Excluded: ${[...closedLines].map(esc).join(", ")}.` : "";
+    box.innerHTML=`<div class="error">No route found in the V4 TfL static network.${excluded} Try clearing one or more closed lines.</div>`;
+    return;
+  }
+
+  routes.sort((a,b)=>{
+    const sa=routeStats(a), sb=routeStats(b);
+    return sa.changes-sb.changes || sa.minutes-sb.minutes || sa.stops-sb.stops;
+  });
+
+  const directExists=routes.some(r=>routeStats(r).direct);
+  const fastest=routeStats(routes[0]);
+
+  box.innerHTML=`<div class="summary">
+    <div>
+      <h2>${routes.length} route${routes.length>1?'s':''} found</h2>
+      <span class="hint">Fewer changes first • fastest within each group</span>
+    </div>
+    <span class="hint">${esc(from)} → ${esc(to)}</span>
+  </div>
+  <div class="note" style="margin:6px 0 10px">
+    ${directExists ? "🚇 A direct no-change route is available." : "🔄 No direct same-line route is available in the current static network."}
+    Fastest estimate: <b>~${fastest.minutes} min</b>.${closedLines.size ? ` ⚠️ Closed: <b>${[...closedLines].map(esc).join(", ")}</b>.` : ""}
+  </div>`+
+    routes.slice(0,6).map((r,i)=>renderRoute(r,i)).join("");
+}
+
+document.getElementById("go").onclick=findRoutes;
+document.getElementById("clear").onclick=()=>{
+  fromInput.value="";
+  toInput.value="";
+  results.innerHTML="";
+  closeStationMenus();
+  updateSearchStatus();
+  closedOptions.querySelectorAll('input[type="checkbox"]').forEach(i=>i.checked=false);
+  updateClosedSummary();
+}
+document.getElementById("swap").onclick=()=>{const a=fromInput.value;fromInput.value=toInput.value;toInput.value=a;updateSearchStatus()}
+for(const id of ["from","to"]) document.getElementById(id).addEventListener("keydown",e=>{if(e.key==="Enter")findRoutes()});
+
+// Demo
+document.getElementById("from").value="King's Cross St Pancras";
+document.getElementById("to").value="Canary Wharf";
+findRoutes();
+</script>
+</body>
+</html>
